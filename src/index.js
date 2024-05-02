@@ -1,8 +1,7 @@
 import express from 'express';
-import axios from 'axios';
 import 'dotenv/config';
-import { axiosGet, axiosImage } from './axios.js';
-import { getIds } from './helpers.js';
+import { axiosGet, axiosImage, axiosImageDownload } from './axios.js';
+import { extractIds, sendResponse } from './helpers.js';
 
 const app = express();
 const port = process.env.PORT;
@@ -21,26 +20,21 @@ app.get('/', async (req, res) => {
   try {
     const response = await axiosGet(url);
     const data = response.data.nodes[node2].document.children[0].children;
-    // const ids = getIds(data);
 
-    // const images = await Promise.all(ids.map((key) => axiosImage(key)));
+    const ids = extractIds(data);
 
-    return res.json({
-      status: 200,
-      message: 'success',
-      data: data,
-      error: null,
-    });
+    const images = await Promise.all(ids.map((key) => axiosImage(key)));
+
+    sendResponse(res, 200, 'success', images);
   } catch (e) {
     console.error('error fetching data: ', e.message);
-    return res.json({
-      status: 500,
-      message: 'error',
-      data: null,
-      error: e.message,
-    });
+    sendResponse(res, 400, 'error', null, e.message);
   }
 });
+
+axiosImageDownload(
+  'https://figma-alpha-api.s3.us-west-2.amazonaws.com/images/ff364dfb-9b3b-4df6-a1ad-a04440fd8609'
+);
 
 app.listen(port, () => {
   console.log(`server is listening on ${port}`);
