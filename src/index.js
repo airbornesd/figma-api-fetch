@@ -25,16 +25,17 @@ app.get('/', async (req, res) => {
 
     const images = await Promise.all(ids.map((key) => axiosImage(key)));
 
+    images.forEach((object) => {
+      const value = Object.values(object)[0];
+      axiosImageDownload(value, './img');
+    });
+
     sendResponse(res, 200, 'success', images);
   } catch (e) {
     console.error('error fetching data: ', e.message);
     sendResponse(res, 400, 'error', null, e.message);
   }
 });
-
-axiosImageDownload(
-  'https://figma-alpha-api.s3.us-west-2.amazonaws.com/images/ff364dfb-9b3b-4df6-a1ad-a04440fd8609'
-);
 
 app.listen(port, () => {
   console.log(`server is listening on ${port}`);

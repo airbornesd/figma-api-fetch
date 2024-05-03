@@ -1,6 +1,6 @@
 import axios from 'axios';
 import fs from 'fs';
-import { resolve } from 'path';
+import path, { resolve } from 'path';
 
 const token = process.env.FIGMA_ACCESS_TOKEN;
 
@@ -13,7 +13,7 @@ export const axiosGet = async (url) => {
 };
 
 export const axiosImage = async (id) => {
-  const url = `https://api.figma.com/v1/images/${process.env.FILE_KEY}/?ids=${id}&format=pdf`;
+  const url = `https://api.figma.com/v1/images/${process.env.FILE_KEY}/?ids=${id}&format=png`;
 
   const data = await axios.get(url, {
     headers: {
@@ -24,19 +24,25 @@ export const axiosImage = async (id) => {
   return data.data.images;
 };
 
-export const axiosImageDownload = async (url) => {
-  const response = await axios.get(url, {
+export const axiosImageDownload = async (url, folderPath) => {
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdirSync(folderPath, { recursive: true });
+  }
+
+  const response = await axios({
+    method: 'GET',
+    url: url,
     responseType: 'stream',
   });
-  // console.log('🚀 ~ axiosImageDownload ~ response:', response.data.pipe);
 
-  const result = new Promise((resolve, reject) => {
-    response.data
-      .pipe(fs.createWriteStream('../testImg'))
-      .on('finish', resolve)
-      .on('error', reject)
-      .once('close', () => resolve('../testImg'));
+  const fileName = path.basename(url);
+  const filePath = path.join(folderPath, fileName);
+
+  const writer = fs.createWriteStream(filePath);
+  response.data.pipe(writer);
+
+  return new Promise((resolve, reject) => {
+    writer.on('finish', () => resolve(filePath));
+    writer.on('error', (err) => reject(err));
   });
-
-  console.log(result);
 };
